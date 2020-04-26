@@ -42,10 +42,6 @@ void *ThreadPool::ThreadPool_Cycle(void *data)
         }
 
         ptask->run();
-        
-        if(ptask != NULL)
-            delete (ptask);
-        
     }
 
 }
@@ -125,5 +121,22 @@ void ThreadPool::ThreadPool_exit_handler(void *data)
 void ThreadPool::ThreadPool_Destroy(ThreadPool *pool)
 {
     int n;
-    
+    unsigned int lock = 0;
+    ThreadTask task(ThreadPool::ThreadPool_exit_handler, &lock);
+
+    for(n = 0; n < pool->threads; n++){
+        lock = 1;
+
+        if(ThreadPool::ThreadPool_Post(pool, &task) != 0){
+            return;
+        }
+
+        while(lock){
+            usleep(1);
+        }
+    }
+    ThreadCond::ThreadCond_Destroy(&pool->cond);
+    ThreadMutex::ThreadMutex_Destroy(&pool->mtx);
+
+        
 }
